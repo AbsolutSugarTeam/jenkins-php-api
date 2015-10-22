@@ -249,4 +249,14 @@ class Build
     {
         return $this->build->builtOn;
     }
+
+    /**
+     * Get build queue item id
+     *
+     * @return int
+     */
+    public function getQueueId()
+    {
+        return $this->build->queueId;
+    }
 }
