@@ -41,6 +41,10 @@ class Job
         return $builds;
     }
 
+    public function getBuildsList()
+    {
+        return $this->job->builds;
+    }
 
     /**
      * @param int $buildId

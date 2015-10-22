@@ -237,14 +237,14 @@ class Jenkins
     }
 
     /**
-     * @param array $extraParameters
-     *
+     * @param $jobName
+     * @param array $parameters
+     * @param bool $forceWithParameters
      * @return bool
-     * @throws \RuntimeException
      */
-    public function launchJob($jobName, $parameters = array())
+    public function launchJob($jobName, $parameters = array(), $forceWithParameters = false)
     {
-        if (0 === count($parameters)) {
+        if (0 === count($parameters) && !$forceWithParameters) {
             $url = sprintf('%s/job/%s/build', $this->baseUrl, $jobName);
         } else {
             $url = sprintf('%s/job/%s/buildWithParameters', $this->baseUrl, $jobName);
@@ -254,6 +254,8 @@ class Jenkins
 
         curl_setopt($curl, \CURLOPT_POST, 1);
         curl_setopt($curl, \CURLOPT_POSTFIELDS, http_build_query($parameters));
+        curl_setopt($curl, \CURLOPT_HEADER, 1);
+        curl_setopt($curl, \CURLOPT_RETURNTRANSFER, 1);
 
         $headers = array();
 
@@ -263,13 +265,15 @@ class Jenkins
 
         curl_setopt($curl, \CURLOPT_HTTPHEADER, $headers);
 
-        curl_exec($curl);
-
-        if (curl_errno($curl)) {
+        if ((!$response = curl_exec($curl)) || curl_errno($curl)) {
             throw new \RuntimeException(sprintf('Error trying to launch job "%s" (%s)', $parameters['name'], $url));
         }
 
-        return true;
+        if (!preg_match('/Location: .*\/queue\/item\/(\d+)\//', $response, $matches) || empty($matches[1])) {
+            throw new \RuntimeException(sprintf('Error trying to extract queue item id (%s)', $url));
+        }
+
+        return (int) $matches[1];
     }
 
     /**
@@ -422,7 +426,7 @@ class Jenkins
      * @return Jenkins\Build
      * @throws \RuntimeException
      */
-    public function getBuild($job, $buildId, $tree = 'actions[parameters,parameters[name,value]],result,duration,timestamp,number,url,estimatedDuration,builtOn')
+    public function getBuild($job, $buildId, $tree = 'actions[parameters,parameters[name,value]],result,duration,timestamp,number,url,estimatedDuration,builtOn,queueId')
     {
         if ($tree !== null) {
             $tree = sprintf('?tree=%s', $tree);
