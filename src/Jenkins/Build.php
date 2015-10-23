@@ -259,4 +259,14 @@ class Build
     {
         return $this->build->queueId;
     }
+
+    /**
+     * Is build is still building
+     *
+     * @return bool
+     */
+    public function isBuilding()
+    {
+        return $this->build->building;
+    }
 }
